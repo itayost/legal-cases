@@ -6,41 +6,17 @@
         <mat-icon>gavel</mat-icon>
         <h1>פרטי פסק דין</h1>
       </div>
-      <p class="hero-subtitle" *ngIf="legalCase">{{ legalCase.case_title }}</p>
+      <p class="hero-subtitle" *ngIf="decision">{{ decision.decision_title || 'פסק דין #' + decision.decision_id }}</p>
     </div>
   </div>
 
   <!-- Content Section -->
   <div class="content-section">
     <div class="container">
-      <!-- Skeleton Loading -->
-      <div class="skeleton-case" *ngIf="loading">
-        <div class="skeleton-action-bar">
-          <div class="skeleton-action-button"></div>
-          <div class="skeleton-action-button"></div>
-        </div>
-
-        <div class="skeleton-card">
-          <div class="skeleton-card-title"></div>
-          <div class="skeleton-info-grid">
-            <div class="skeleton-info-item"></div>
-            <div class="skeleton-info-item"></div>
-            <div class="skeleton-info-item"></div>
-            <div class="skeleton-info-item"></div>
-            <div class="skeleton-info-item"></div>
-          </div>
-        </div>
-
-        <div class="skeleton-card">
-          <div class="skeleton-card-title"></div>
-          <div class="skeleton-info-item"></div>
-          <div class="skeleton-info-item"></div>
-        </div>
-
-        <div class="skeleton-card">
-          <div class="skeleton-card-title"></div>
-          <div class="skeleton-text"></div>
-        </div>
+      <!-- Loading Spinner -->
+      <div *ngIf="loading" style="text-align: center; padding: 40px;">
+        <mat-spinner></mat-spinner>
+        <p>טוען פרטי החלטה...</p>
       </div>
 
       <!-- Error Alert -->
@@ -52,100 +28,259 @@
         </div>
       </div>
 
-      <!-- Case Details -->
-      <div *ngIf="!loading && !error && legalCase" class="case-content">
+      <!-- Decision Details -->
+      <div *ngIf="!loading && !error && decision" class="case-content">
         <!-- Action Buttons -->
         <div class="action-bar">
           <button mat-raised-button (click)="goBack()">
             <mat-icon>arrow_forward</mat-icon>
-            חזרה לחיפוש
+            חזרה
           </button>
           <button mat-raised-button color="primary" (click)="printCase()">
             <mat-icon>print</mat-icon>
             הדפסה
           </button>
+          <button mat-raised-button color="warn" (click)="deleteDecision()">
+            <mat-icon>delete</mat-icon>
+            מחיקה
+          </button>
         </div>
 
-        <!-- Basic Info Card -->
-        <div class="info-card">
-          <h2 class="card-title">
-            <mat-icon>info</mat-icon>
-            מידע כללי
-          </h2>
+        <!-- Tabs -->
+        <mat-tab-group>
+          <!-- Tab 1: Decision Info -->
+          <mat-tab label="מידע כללי">
+            <div class="tab-content">
+              <div class="info-card">
+                <h2 class="card-title">
+                  <mat-icon>info</mat-icon>
+                  פרטי ההחלטה
+                </h2>
 
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">מספר תיק:</span>
-              <span class="info-value">{{ legalCase.case_number }}</span>
-            </div>
+                <div class="info-grid">
+                  <div class="info-item" *ngIf="decision.decision_id">
+                    <span class="info-label">מזהה:</span>
+                    <span class="info-value">{{ decision.decision_id }}</span>
+                  </div>
 
-            <div class="info-item">
-              <span class="info-label">תאריך פסק דין:</span>
-              <span class="info-value">{{ legalCase.verdict_date }}</span>
-            </div>
+                  <div class="info-item" *ngIf="decision.case_number">
+                    <span class="info-label">מספר תיק:</span>
+                    <span class="info-value">{{ decision.case_number }}</span>
+                  </div>
 
-            <div class="info-item">
-              <span class="info-label">בית משפט:</span>
-              <span class="info-value">{{ legalCase.court_type }}</span>
-            </div>
+                  <div class="info-item" *ngIf="decision.decision_date">
+                    <span class="info-label">תאריך החלטה:</span>
+                    <span class="info-value">{{ decision.decision_date }}</span>
+                  </div>
 
-            <div class="info-item" *ngIf="legalCase.court_location">
-              <span class="info-label">מיקום:</span>
-              <span class="info-value">{{ legalCase.court_location }}</span>
-            </div>
+                  <div class="info-item" *ngIf="decision.publish_date">
+                    <span class="info-label">תאריך פרסום:</span>
+                    <span class="info-value">{{ decision.publish_date }}</span>
+                  </div>
 
-            <div class="info-item" *ngIf="legalCase.legal_field">
-              <span class="info-label">תחום משפטי:</span>
-              <span class="info-value">{{ legalCase.legal_field }}</span>
-            </div>
-          </div>
-        </div>
+                  <div class="info-item" *ngIf="decision.court_name">
+                    <span class="info-label">בית משפט:</span>
+                    <span class="info-value">{{ decision.court_name }}</span>
+                  </div>
 
-        <!-- Judges Card -->
-        <div class="info-card" *ngIf="judges.length > 0">
-          <h2 class="card-title">
-            <mat-icon>account_balance</mat-icon>
-            שופטים
-          </h2>
+                  <div class="info-item" *ngIf="decision.court_level">
+                    <span class="info-label">רמה:</span>
+                    <span class="info-value">{{ decision.court_level }}</span>
+                  </div>
 
-          <div class="judges-list">
-            <div *ngFor="let judge of judges" class="judge-item">
-              <mat-icon *ngIf="judge.is_presiding" class="presiding-icon">star</mat-icon>
-              <div class="judge-info">
-                <strong>{{ judge.judge_title }} {{ judge.judge_name }}</strong>
-                <span *ngIf="judge.is_presiding" class="presiding-label">(שופט ראשי)</span>
+                  <div class="info-item" *ngIf="decision.decision_type">
+                    <span class="info-label">סוג:</span>
+                    <span class="info-value">{{ decision.decision_type }}</span>
+                  </div>
+
+                  <div class="info-item" *ngIf="decision.status">
+                    <span class="info-label">סטטוס:</span>
+                    <span class="info-value">{{ decision.status }}</span>
+                  </div>
+
+                  <div class="info-item" *ngIf="decision.language_code">
+                    <span class="info-label">שפה:</span>
+                    <span class="info-value">{{ decision.language_code }}</span>
+                  </div>
+
+                  <div class="info-item full-width" *ngIf="decision.source_url">
+                    <span class="info-label">מקור:</span>
+                    <a [href]="decision.source_url" target="_blank" class="info-value">{{ decision.source_url }}</a>
+                  </div>
+
+                  <div class="info-item full-width" *ngIf="decision.summary_text">
+                    <span class="info-label">תקציר:</span>
+                    <span class="info-value">{{ decision.summary_text }}</span>
+                  </div>
+
+                  <div class="info-item full-width" *ngIf="decision.keywords">
+                    <span class="info-label">מילות מפתח:</span>
+                    <mat-chip-set>
+                      <mat-chip *ngFor="let keyword of decision.keywords.split(',')">{{ keyword.trim() }}</mat-chip>
+                    </mat-chip-set>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Files -->
+              <div class="info-card" *ngIf="decision.files && decision.files.length > 0">
+                <h2 class="card-title">
+                  <mat-icon>attach_file</mat-icon>
+                  קבצים מצורפים
+                </h2>
+                <div class="files-list">
+                  <div *ngFor="let file of decision.files" class="file-item">
+                    <mat-icon>description</mat-icon>
+                    <div class="file-info">
+                      <a [href]="file.file_url" target="_blank">{{ file.file_title || file.file_url }}</a>
+                      <small>{{ file.mime_type }} • {{ file.file_size_bytes ? (file.file_size_bytes / 1024 / 1024).toFixed(2) + ' MB' : '' }}</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Statistics -->
+              <div class="info-card" *ngIf="statistics">
+                <h2 class="card-title">
+                  <mat-icon>bar_chart</mat-icon>
+                  סטטיסטיקה
+                </h2>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">שורות:</span>
+                    <span class="info-value">{{ statistics.lines }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">מילים:</span>
+                    <span class="info-value">{{ statistics.tokens }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">מילים ייחודיות:</span>
+                    <span class="info-value">{{ statistics.unique_words }}</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </mat-tab>
 
-        <!-- Parties Card -->
-        <div class="info-card" *ngIf="parties.length > 0">
-          <h2 class="card-title">
-            <mat-icon>people</mat-icon>
-            בעלי דין
-          </h2>
-
-          <div class="parties-grid">
-            <div *ngFor="let party of parties" class="party-item">
-              <mat-chip>{{ getPartyRole(party.party_role) }}</mat-chip>
-              <span>{{ party.party_name }}</span>
+          <!-- Tab 2: Text -->
+          <mat-tab label="טקסט מלא">
+            <div class="tab-content">
+              <div class="info-card">
+                <h2 class="card-title">
+                  <mat-icon>article</mat-icon>
+                  טקסט פסק הדין
+                </h2>
+                <div class="case-text" *ngIf="caseText">
+                  <pre>{{ caseText }}</pre>
+                </div>
+                <div *ngIf="!caseText" style="padding: 20px; text-align: center; color: #666;">
+                  אין טקסט זמין להחלטה זו
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </mat-tab>
 
-        <!-- Case Text Card -->
-        <div class="info-card text-card">
-          <h2 class="card-title">
-            <mat-icon>description</mat-icon>
-            נוסח פסק הדין
-          </h2>
+          <!-- Tab 3: Word Index -->
+          <mat-tab label="אינדקס מילים">
+            <div class="tab-content">
+              <div class="info-card">
+                <h2 class="card-title">
+                  <mat-icon>list</mat-icon>
+                  100 המילים הנפוצות ביותר
+                </h2>
+                <div *ngIf="wordIndex.length > 0">
+                  <table class="word-index-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>מילה</th>
+                        <th>מספר מופעים</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let word of wordIndex; let i = index">
+                        <td>{{ i + 1 }}</td>
+                        <td>{{ word.word_text }}</td>
+                        <td>{{ word.cnt }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div *ngIf="wordIndex.length === 0" style="padding: 20px; text-align: center; color: #666;">
+                  אין אינדקס מילים זמין
+                </div>
+              </div>
+            </div>
+          </mat-tab>
 
-          <div class="case-text">
-            <p *ngIf="!caseText && !loading">טוען את טקסט פסק הדין...</p>
-            <pre *ngIf="caseText">{{ caseText }}</pre>
-          </div>
-        </div>
+          <!-- Tab 4: Search -->
+          <mat-tab label="חיפוש">
+            <div class="tab-content">
+              <div class="info-card">
+                <h2 class="card-title">
+                  <mat-icon>search</mat-icon>
+                  חיפוש בטקסט
+                </h2>
+
+                <!-- Search Form -->
+                <div class="search-form">
+                  <div class="search-type-toggle">
+                    <button mat-raised-button
+                            [color]="searchType === 'word' ? 'primary' : ''"
+                            (click)="searchType = 'word'">
+                      חיפוש מילה
+                    </button>
+                    <button mat-raised-button
+                            [color]="searchType === 'phrase' ? 'primary' : ''"
+                            (click)="searchType = 'phrase'">
+                      חיפוש ביטוי
+                    </button>
+                  </div>
+
+                  <mat-form-field appearance="outline" style="width: 100%;">
+                    <mat-label>{{ searchType === 'word' ? 'הזן מילה' : 'הזן ביטוי' }}</mat-label>
+                    <input matInput [(ngModel)]="searchQuery" (keyup.enter)="performSearch()">
+                  </mat-form-field>
+
+                  <button mat-raised-button color="primary" (click)="performSearch()" [disabled]="searching || !searchQuery">
+                    <mat-spinner diameter="20" *ngIf="searching"></mat-spinner>
+                    <mat-icon *ngIf="!searching">search</mat-icon>
+                    חפש
+                  </button>
+                </div>
+
+                <!-- Search Error -->
+                <div *ngIf="searchError" class="alert alert-error" style="margin-top: 20px;">
+                  <mat-icon>error</mat-icon>
+                  <span>{{ searchError }}</span>
+                </div>
+
+                <!-- Search Results -->
+                <div *ngIf="searchResults && !searching" class="search-results">
+                  <h3>תוצאות ({{ searchResults.occurrences.length || 0 }} מופעים)</h3>
+
+                  <div *ngFor="let occurrence of searchResults.occurrences; let i = index" class="search-result-item">
+                    <div class="result-header">
+                      <strong>מופע #{{ i + 1 }}</strong>
+                      <span>שורה {{ occurrence.line_no }}, תווים {{ occurrence.char_start }}-{{ occurrence.char_end }}</span>
+                    </div>
+                    <div class="result-context">
+                      <div *ngFor="let line of occurrence.context" class="context-line">
+                        <span class="line-number">{{ line.line }}:</span>
+                        <span class="line-text">{{ line.text }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div *ngIf="searchResults.occurrences?.length === 0" style="padding: 20px; text-align: center; color: #666;">
+                    לא נמצאו תוצאות
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
       </div>
     </div>
   </div>

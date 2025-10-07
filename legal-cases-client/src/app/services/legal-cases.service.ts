@@ -1,220 +1,139 @@
 // services/legal-cases.service.ts
+// Updated to match server API endpoints
 
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { LegalCase, Judge, Party, SearchResult, LegalTermGroup, LegalPhrase, WordGroupSearchResult, PhraseSearchResult, Statistics } from '../models/legal-case.model';
+import { LegalCase, WordIndex, WordSearchResult, PhraseSearchResult, LegalTermGroup, WordGroupIndex, Statistics } from '../models/legal-case.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class LegalCasesService {
   private apiUrl = 'http://localhost:3000/api';
-  
+
   constructor(private http: HttpClient) {}
-  
-  // --- Legal Cases ---
-  
-  // קבלת כל פסקי הדין
-  getAllCases(): Observable<LegalCase[]> {
-    return this.http.get<LegalCase[]>(`${this.apiUrl}/legal-cases`);
-  }
-  
+
+  // --- Decisions ---
+
   // קבלת פסק דין ספציפי
   getCase(id: number): Observable<LegalCase> {
-    return this.http.get<LegalCase>(`${this.apiUrl}/legal-cases/${id}`);
+    return this.http.get<LegalCase>(`${this.apiUrl}/decisions/${id}`);
   }
-  
+
   // יצירת פסק דין חדש
-  createCase(caseData: any): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/legal-cases`, caseData);
+  createCase(caseData: Partial<LegalCase>): Observable<{ id: number }> {
+    return this.http.post<{ id: number }>(`${this.apiUrl}/decisions`, caseData);
   }
-  
+
+  // עדכון פסק דין
+  updateCase(id: number, caseData: Partial<LegalCase>): Observable<{ ok: boolean }> {
+    return this.http.put<{ ok: boolean }>(`${this.apiUrl}/decisions/${id}`, caseData);
+  }
+
   // מחיקת פסק דין
-  deleteCase(id: number): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/legal-cases/${id}`);
+  deleteCase(id: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.apiUrl}/decisions/${id}`);
   }
-  
+
+  // --- Text Management ---
+
   // קבלת טקסט של פסק דין
-  getCaseText(id: number): Observable<string> {
-    return this.http.get(`${this.apiUrl}/legal-cases/${id}/text`, { responseType: 'text' });
+  getCaseText(id: number, from?: number, to?: number): Observable<string> {
+    let url = `${this.apiUrl}/decisions/${id}/text`;
+    const params: string[] = [];
+    if (from !== undefined) params.push(`from=${from}`);
+    if (to !== undefined) params.push(`to=${to}`);
+    if (params.length) url += `?${params.join('&')}`;
+    return this.http.get(url, { responseType: 'text' });
   }
-  
-  // --- Judges ---
-  
-  // קבלת שופטים של פסק דין
-  getCaseJudges(caseId: number): Observable<Judge[]> {
-    return this.http.get<Judge[]>(`${this.apiUrl}/legal-cases/${caseId}/judges`);
+
+  // העלאת טקסט (TXT file או JSON)
+  uploadCaseText(id: number, textOrFile: string | File): Observable<{ ok: boolean; lines: number; unique_words: number; tokens: number }> {
+    if (typeof textOrFile === 'string') {
+      // JSON format
+      return this.http.post<any>(`${this.apiUrl}/decisions/${id}/text`, { text: textOrFile });
+    } else {
+      // Multipart file upload
+      const formData = new FormData();
+      formData.append('file', textOrFile);
+      return this.http.post<any>(`${this.apiUrl}/decisions/${id}/text`, formData);
+    }
   }
-  
-  // --- Parties ---
-  
-  // קבלת צדדים של פסק דין
-  getCaseParties(caseId: number): Observable<Party[]> {
-    return this.http.get<Party[]>(`${this.apiUrl}/legal-cases/${caseId}/parties`);
+
+  // --- Files ---
+
+  // הוספת קובץ לפסק דין
+  addDecisionFile(decisionId: number, fileData: {
+    file_url: string;
+    file_title?: string;
+    mime_type?: string;
+    lang_code?: string;
+    page_count?: number;
+    file_size_bytes?: number;
+    hash_sha256?: string;
+  }): Observable<{ id: number }> {
+    return this.http.post<{ id: number }>(`${this.apiUrl}/decisions/${decisionId}/files`, fileData);
   }
-  
+
+  // --- Word Index ---
+
+  // קבלת אינדקס מילים לפסק דין
+  getWordIndex(decisionId: number, order: 'alpha' | 'freq' = 'alpha', limit: number = 1000): Observable<WordIndex[]> {
+    return this.http.get<WordIndex[]>(`${this.apiUrl}/decisions/${decisionId}/words?order=${order}&limit=${limit}`);
+  }
+
   // --- Search ---
-  
-  // חיפוש בפסקי דין
-  search(
-    term: string,
-    phraseSearch: boolean = false,
-    courtType?: string,
-    caseNumber?: string,
-    dateFrom?: string,
-    dateTo?: string,
-    lineNumber?: number,
-    paragraphNumber?: number
-  ): Observable<SearchResult[]> {
-    let params = `term=${encodeURIComponent(term)}&phraseSearch=${phraseSearch}`;
 
-    // הוספת פילטרים בסיסיים
-    if (courtType) params += `&courtType=${encodeURIComponent(courtType)}`;
-    if (caseNumber) params += `&caseNumber=${encodeURIComponent(caseNumber)}`;
-    if (dateFrom) params += `&dateFrom=${encodeURIComponent(dateFrom)}`;
-    if (dateTo) params += `&dateTo=${encodeURIComponent(dateTo)}`;
+  // חיפוש מילה ספציפית בפסק דין
+  searchWord(
+    decisionId: number,
+    word: string,
+    before: number = 2,
+    after: number = 2,
+    max: number = 100
+  ): Observable<WordSearchResult> {
+    return this.http.get<WordSearchResult>(
+      `${this.apiUrl}/decisions/${decisionId}/search/word?q=${encodeURIComponent(word)}&before=${before}&after=${after}&max=${max}`
+    );
+  }
 
-    // הוספת חיפוש לפי מיקום
-    if (lineNumber) params += `&lineNumber=${lineNumber}`;
-    if (paragraphNumber) params += `&paragraphNumber=${paragraphNumber}`;
-
-    return this.http.get<SearchResult[]>(`${this.apiUrl}/search?${params}`);
-  }
-  
-  // --- Similar Cases ---
-  
-  // מציאת פסקי דין דומים
-  findSimilarCases(caseId: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/legal-cases/${caseId}/similar`);
-  }
-  
-  // --- Statistics ---
-
-  // קבלת סטטיסטיקה
-  getStatistics(caseId?: number): Observable<Statistics> {
-    const url = caseId
-      ? `${this.apiUrl}/statistics?caseId=${caseId}`
-      : `${this.apiUrl}/statistics`;
-    return this.http.get<Statistics>(url);
-  }
-  
-  // --- Export/Import ---
-  
-  // ייצוא נתונים ל-XML
-  exportData(): Observable<string> {
-    return this.http.get(`${this.apiUrl}/export`, { responseType: 'text' });
-  }
-  
-  // ייבוא נתונים מ-XML
-  importData(xmlData: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/import`, xmlData, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/xml' }),
-      responseType: 'text'
-    });
+  // חיפוש ביטוי בפסק דין
+  searchPhrase(
+    decisionId: number,
+    phrase: string,
+    before: number = 2,
+    after: number = 2,
+    max: number = 100
+  ): Observable<PhraseSearchResult> {
+    return this.http.get<PhraseSearchResult>(
+      `${this.apiUrl}/decisions/${decisionId}/search/phrase?q=${encodeURIComponent(phrase)}&before=${before}&after=${after}&max=${max}`
+    );
   }
 
   // --- Word Groups ---
 
-  // קבלת כל קבוצות המילים
-  getAllWordGroups(): Observable<LegalTermGroup[]> {
-    return this.http.get<LegalTermGroup[]>(`${this.apiUrl}/word-groups`);
-  }
-
-  // קבלת קבוצת מילים ספציפית
-  getWordGroup(id: number): Observable<LegalTermGroup> {
-    return this.http.get<LegalTermGroup>(`${this.apiUrl}/word-groups/${id}`);
-  }
-
   // יצירת קבוצת מילים חדשה
-  createWordGroup(group: LegalTermGroup): Observable<LegalTermGroup> {
-    return this.http.post<LegalTermGroup>(`${this.apiUrl}/word-groups`, group);
+  createWordGroup(name: string, description?: string): Observable<{ id: number }> {
+    return this.http.post<{ id: number }>(`${this.apiUrl}/groups`, { name, description });
   }
 
-  // עדכון קבוצת מילים
-  updateWordGroup(id: number, group: LegalTermGroup): Observable<LegalTermGroup> {
-    return this.http.put<LegalTermGroup>(`${this.apiUrl}/word-groups/${id}`, group);
+  // הוספת מילים לקבוצה
+  addWordsToGroup(groupId: number, words: string[]): Observable<{ ok: boolean; added: number }> {
+    return this.http.post<any>(`${this.apiUrl}/groups/${groupId}/words`, { words });
   }
 
-  // מחיקת קבוצת מילים
-  deleteWordGroup(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/word-groups/${id}`);
+  // קבלת אינדקס קבוצת מילים לפסק דין
+  getWordGroupIndex(groupId: number, decisionId: number, limitPerWord: number = 5): Observable<WordGroupIndex> {
+    return this.http.get<WordGroupIndex>(
+      `${this.apiUrl}/groups/${groupId}/index?decision_id=${decisionId}&limit_per_word=${limitPerWord}`
+    );
   }
 
-  // הוספת מילה לקבוצה
-  addWordToGroup(groupId: number, word: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/word-groups/${groupId}/words`, { word });
-  }
+  // --- Statistics ---
 
-  // הסרת מילה מקבוצה
-  removeWordFromGroup(groupId: number, word: string): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/word-groups/${groupId}/words/${encodeURIComponent(word)}`);
-  }
-
-  // חיפוש מופעים של קבוצת מילים
-  searchWordGroup(groupId: number): Observable<WordGroupSearchResult[]> {
-    return this.http.get<WordGroupSearchResult[]>(`${this.apiUrl}/word-groups/${groupId}/search`);
-  }
-
-  // יצירת אינדקס להדפסה
-  generateWordGroupIndex(groupId: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/word-groups/${groupId}/index`);
-  }
-
-  // --- Legal Phrases ---
-
-  // קבלת כל הביטויים
-  getAllPhrases(): Observable<LegalPhrase[]> {
-    return this.http.get<LegalPhrase[]>(`${this.apiUrl}/legal-phrases`);
-  }
-
-  // קבלת ביטוי ספציפי
-  getPhrase(id: number): Observable<LegalPhrase> {
-    return this.http.get<LegalPhrase>(`${this.apiUrl}/legal-phrases/${id}`);
-  }
-
-  // יצירת ביטוי חדש
-  createPhrase(phrase: LegalPhrase): Observable<LegalPhrase> {
-    return this.http.post<LegalPhrase>(`${this.apiUrl}/legal-phrases`, phrase);
-  }
-
-  // עדכון ביטוי
-  updatePhrase(id: number, phrase: LegalPhrase): Observable<LegalPhrase> {
-    return this.http.put<LegalPhrase>(`${this.apiUrl}/legal-phrases/${id}`, phrase);
-  }
-
-  // מחיקת ביטוי
-  deletePhrase(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/legal-phrases/${id}`);
-  }
-
-  // חיפוש מופעים של ביטוי
-  searchPhrase(phraseId: number): Observable<PhraseSearchResult[]> {
-    return this.http.get<PhraseSearchResult[]>(`${this.apiUrl}/legal-phrases/${phraseId}/search`);
-  }
-
-  // --- Words Index ---
-
-  // קבלת כל המילים במערכת
-  getAllWords(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/words`);
-  }
-
-  // קבלת מופעים של מילה ספציפית
-  getWordOccurrences(word: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/words/${encodeURIComponent(word)}/occurrences`);
-  }
-
-  // חיפוש מילים לצורך השלמה אוטומטית
-  searchWords(query: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/words/search?query=${encodeURIComponent(query)}`);
-  }
-
-  // חיפוש לפי מיקום (שורה ופסקה)
-  searchByLocation(lineNumber: number, paragraphNumber?: number, caseId?: number): Observable<any[]> {
-    let params = `lineNumber=${lineNumber}`;
-    if (paragraphNumber) params += `&paragraphNumber=${paragraphNumber}`;
-    if (caseId) params += `&caseId=${caseId}`;
-    return this.http.get<any[]>(`${this.apiUrl}/search/by-location?${params}`);
+  // קבלת סטטיסטיקה לפסק דין
+  getStatistics(decisionId: number): Observable<Statistics> {
+    return this.http.get<Statistics>(`${this.apiUrl}/decisions/${decisionId}/stats`);
   }
 }

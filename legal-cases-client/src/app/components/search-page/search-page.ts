@@ -1,141 +1,118 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { LegalCasesService } from '../../services/legal-cases.service';
-import { SearchResult } from '../../models/legal-case.model';
+import { WordSearchResult, PhraseSearchResult } from '../../models/legal-case.model';
 
 @Component({
   selector: 'app-search-page',
+  standalone: true,
   imports: [
     CommonModule,
     FormsModule,
-    RouterLink,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatCheckboxModule,
     MatProgressSpinnerModule,
-    MatChipsModule
+    MatTabsModule
   ],
   templateUrl: './search-page.html',
   styleUrl: './search-page.scss'
 })
-export class SearchPage implements OnInit {
-  searchTerm: string = '';
-  phraseSearch: boolean = false;
+export class SearchPage {
+  // Required inputs
+  decisionId: number | null = null;
+  searchQuery: string = '';
+  searchType: 'word' | 'phrase' = 'word';
+
+  // Context controls
+  beforeLines: number = 2;
+  afterLines: number = 2;
+  maxResults: number = 100;
+
+  // State
   loading: boolean = false;
-  results: SearchResult[] = [];
+  searchResults: WordSearchResult | PhraseSearchResult | null = null;
   error: string = '';
-
-  // Basic filters (3 only + location search)
-  showFilters: boolean = false;
-  courtType: string = '';
-  caseNumber: string = '';
-  dateFrom: string = '';
-  dateTo: string = '';
-  lineNumber: number | null = null;
-  paragraphNumber: number | null = null;
-
-  courtTypes = [
-    'בית המשפט העליון',
-    'בית משפט מחוזי',
-    'בית משפט שלום',
-    'בית דין לעבודה',
-    'בית משפט צבאי'
-  ];
 
   constructor(private legalCasesService: LegalCasesService) {}
 
-  ngOnInit(): void {
-    // Initialize component
-  }
+  performSearch(): void {
+    if (!this.decisionId) {
+      this.error = 'נא להזין מזהה החלטה';
+      return;
+    }
 
-  toggleFilters(): void {
-    this.showFilters = !this.showFilters;
-  }
-
-  onSearch(): void {
-    if (!this.searchTerm.trim()) {
+    if (!this.searchQuery.trim()) {
       this.error = 'נא להזין מונח חיפוש';
       return;
     }
 
     this.loading = true;
     this.error = '';
-    this.results = [];
+    this.searchResults = null;
 
-    this.legalCasesService.search(
-      this.searchTerm,
-      this.phraseSearch,
-      this.courtType || undefined,
-      this.caseNumber || undefined,
-      this.dateFrom || undefined,
-      this.dateTo || undefined,
-      this.lineNumber || undefined,
-      this.paragraphNumber || undefined
-    ).subscribe({
-      next: (results) => {
-        this.results = results;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = 'שגיאה בחיפוש. אנא נסה שוב.';
-        this.loading = false;
-        console.error('Search error:', err);
-      }
-    });
+    if (this.searchType === 'word') {
+      this.legalCasesService.searchWord(
+        this.decisionId,
+        this.searchQuery.trim(),
+        this.beforeLines,
+        this.afterLines,
+        this.maxResults
+      ).subscribe({
+        next: (results) => {
+          this.searchResults = results;
+          this.loading = false;
+        },
+        error: (err) => {
+          this.loading = false;
+          this.error = 'שגיאה בחיפוש. אולי ההחלטה לא קיימת או אין לה טקסט?';
+          console.error('Search error:', err);
+        }
+      });
+    } else {
+      this.legalCasesService.searchPhrase(
+        this.decisionId,
+        this.searchQuery.trim(),
+        this.beforeLines,
+        this.afterLines,
+        this.maxResults
+      ).subscribe({
+        next: (results) => {
+          this.searchResults = results;
+          this.loading = false;
+        },
+        error: (err) => {
+          this.loading = false;
+          this.error = 'שגיאה בחיפוש';
+          console.error('Search error:', err);
+        }
+      });
+    }
   }
 
   clearSearch(): void {
-    this.searchTerm = '';
-    this.results = [];
+    this.searchQuery = '';
+    this.searchResults = null;
     this.error = '';
   }
 
-  clearFilters(): void {
-    this.courtType = '';
-    this.caseNumber = '';
-    this.dateFrom = '';
-    this.dateTo = '';
-    this.lineNumber = null;
-    this.paragraphNumber = null;
-  }
-
-  removeFilter(filterName: string): void {
-    switch(filterName) {
-      case 'courtType': this.courtType = ''; break;
-      case 'caseNumber': this.caseNumber = ''; break;
-      case 'dateFrom': this.dateFrom = ''; break;
-      case 'dateTo': this.dateTo = ''; break;
-      case 'lineNumber': this.lineNumber = null; break;
-      case 'paragraphNumber': this.paragraphNumber = null; break;
+  getSearchTerm(): string {
+    if (!this.searchResults) return '';
+    if (this.searchType === 'word') {
+      return (this.searchResults as WordSearchResult).word;
+    } else {
+      return (this.searchResults as PhraseSearchResult).phrase;
     }
-    this.onSearch();
-  }
-
-  hasActiveFilters(): boolean {
-    return !!(this.courtType || this.caseNumber || this.dateFrom || this.dateTo || this.lineNumber || this.paragraphNumber);
-  }
-
-  getActiveFiltersCount(): number {
-    let count = 0;
-    if (this.courtType) count++;
-    if (this.caseNumber) count++;
-    if (this.dateFrom || this.dateTo) count++;
-    if (this.lineNumber) count++;
-    if (this.paragraphNumber) count++;
-    return count;
   }
 }

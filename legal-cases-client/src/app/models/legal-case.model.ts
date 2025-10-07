@@ -1,96 +1,97 @@
 // models/legal-case.model.ts
+// Updated to match server API schema
 
 export interface LegalCase {
-  case_id?: number;
-  case_number: string;
-  case_title: string;
-  court_type: string;
-  court_location?: string;
-  verdict_date: string;
-  legal_field?: string;
-  file_path: string;
-  file_name: string;
+  decision_id?: number;
+  source_slug?: string;
+  source_url: string;
+  court_name?: string;
+  court_level?: string;
+  decision_type?: string;
+  case_number?: string;
+  decision_title?: string;
+  decision_date?: string;
+  publish_date?: string;
+  language_code?: string;
+  summary_text?: string;
+  keywords?: string;
+  page_count?: number;
+  file_size_bytes?: number;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+  files?: DecisionFile[];
+}
+
+export interface DecisionFile {
+  file_id?: number;
+  decision_id: number;
+  file_url: string;
+  file_title?: string;
+  mime_type?: string;
+  lang_code?: string;
+  page_count?: number;
+  file_size_bytes?: number;
+  hash_sha256?: string;
   created_at?: string;
 }
 
-export interface Judge {
-  judge_id?: number;
-  judge_name: string;
-  judge_title?: string;
-  is_presiding?: boolean;
+export interface WordIndex {
+  word_text: string;
+  cnt: number;
 }
 
-export interface Party {
-  party_id?: number;
-  party_name: string;
-  party_role: string;
-  party_type?: string;
-}
-
-export interface SearchResult {
-  case_id: number;
-  case_title: string;
-  case_number: string;
-  court_type: string;
-  court_location?: string;
-  verdict_date: string;
-  legal_field?: string;
-  line_number: number;
-  paragraph_number: number;
-  section_number?: number;
-  context: string;
-}
-
-export interface WordOccurrence {
-  occurrence_id: number;
-  case_id: number;
-  word_id: number;
+export interface WordSearchResult {
   word: string;
-  line_number: number;
-  paragraph_number: number;
-  section_number?: number;
+  occurrences: Array<{
+    line_no: number;
+    char_start: number;
+    char_end: number;
+    context: Array<{
+      line: number;
+      text: string;
+    }>;
+  }>;
+}
+
+export interface PhraseSearchResult {
+  phrase: string;
+  occurrences: Array<{
+    line_no: number;
+    char_start: number;
+    char_end: number;
+    context: Array<{
+      line: number;
+      text: string;
+    }>;
+  }>;
 }
 
 export interface LegalTermGroup {
   group_id?: number;
-  group_name: string;
-  group_description?: string;
-  group_category?: string;
-  words?: string[];
-}
-
-export interface LegalPhrase {
-  phrase_id?: number;
-  phrase_text: string;
+  name: string;
   description?: string;
-  occurrences?: number;
-  created_at?: string;
 }
 
-export interface WordGroupSearchResult {
-  word: string;
-  occurrences: WordOccurrence[];
-}
-
-export interface PhraseSearchResult {
-  phrase_id: number;
-  phrase_text: string;
-  case_id: number;
-  case_title: string;
-  case_number: string;
-  context: string;
-  line_number: number;
+export interface WordGroupIndex {
+  decision_id: number;
+  group_id: number;
+  words: Array<{
+    word: string;
+    samples: Array<{
+      line_no: number;
+      char_start: number;
+      char_end: number;
+      context: Array<{
+        line: number;
+        text: string;
+      }>;
+    }>;
+  }>;
 }
 
 export interface Statistics {
-  totalCases: number;
-  totalWords: number;
-  totalWordGroups: number;
-  totalPhrases: number;
-
-  // Statistics for specific case (optional)
-  caseStats?: {
-    wordCount: number;
-    characterCount: number;
-  };
+  lines: number;
+  tokens: number;
+  unique_words: number;
 }
