@@ -1,0 +1,37 @@
+import json, os, textwrap, pathlib
+
+pkg_path = "/mnt/data/package.json"
+
+updated = {
+  "name": "court-decisions-api",
+  "version": "1.0.0",
+  "description": "API for managing court decisions (PDF) on MySQL",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.1",
+    "cors": "^2.8.5",
+    "mysql2": "^3.11.3",
+    "swagger-ui-express": "^5.0.1",
+    "swagger-jsdoc": "^6.2.8",
+    "body-parser": "^1.20.3",
+    "body-parser-xml": "^2.0.5",
+    "fast-xml-parser": "^4.5.0",
+    "multer": "^1.4.5-lts.1",
+    "xmlbuilder": "^15.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
+
+# write it
+with open(pkg_path, "w", encoding="utf-8") as f:
+    json.dump(updated, f, ensure_ascii=False, indent=2)
+
+pkg_path
