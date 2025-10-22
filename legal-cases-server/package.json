@@ -1,8 +1,4 @@
-import json, os, textwrap, pathlib
-
-pkg_path = "/mnt/data/package.json"
-
-updated = {
+{
   "name": "court-decisions-api",
   "version": "1.0.0",
   "description": "",
