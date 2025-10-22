@@ -1,8 +1,4 @@
-import json, os, textwrap, pathlib
-
-pkg_path = "/mnt/data/package.json"
-
-updated = {
+{
   "name": "court-decisions-api",
   "version": "1.0.0",
   "description": "API for managing court decisions (PDF) on MySQL",
@@ -29,9 +25,3 @@ updated = {
     "nodemon": "^3.1.7"
   }
 }
-
-# write it
-with open(pkg_path, "w", encoding="utf-8") as f:
-    json.dump(updated, f, ensure_ascii=False, indent=2)
-
-pkg_path

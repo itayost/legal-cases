@@ -376,7 +376,7 @@ app.post('/api/decisions/:id/files', async (req, res) => {
  * /api/decisions/{id}/text:
  *   post:
  *     summary: Upload a TXT file (multipart or JSON text) and index it
- *     description: Accepts multipart/form-data with field "file" (.txt) OR JSON { text: "..." }.
+ *     description: Accepts multipart/form-data with field "file" (.txt) OR JSON with text field.
  */
 app.post('/api/decisions/:id/text', upload.single('file'), async (req, res) => {
   const id = Number(req.params.id);
