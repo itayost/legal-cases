@@ -55,7 +55,7 @@ html {
   // Material 3 Expressive Color Palette
   // ============================================
 
-  // Primary Blue - Enhanced with vibrant variations
+  // Primary Blue
   --google-blue: #1a73e8;
   --google-blue-hover: #1967d2;
   --google-blue-vibrant: #1557b0;  // Deeper, richer blue
@@ -133,12 +133,12 @@ html {
   // Material 3 Expressive Shape System
   // ============================================
 
-  // Border Radius - Keep rounded style with expressive additions
+  // Border Radius 
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
-  --radius-pill: 100px;          // Keep pill-shaped
+  --radius-pill: 100px;          
   --radius-circle: 50%;
   --radius-squircle: 20px;       // Soft square for variety
   --radius-asymmetric: 16px 48px 16px 48px;  // For visual interest
@@ -173,7 +173,7 @@ body[dir="rtl"],
 }
 
 // ============================================
-// Material Design Overrides - Google Style
+// Material Design Overrides
 // ============================================
 
 .mat-mdc-form-field {
@@ -481,7 +481,7 @@ a {
 }
 
 // ============================================
-// Animations (keeping only used ones)
+// Animations
 // ============================================
 
 // Used by skeleton mixin
@@ -569,7 +569,7 @@ textarea {
 
 
 // ============================================
-// Container (keeping only used ones)
+// Container
 // ============================================
 
 .container {
@@ -585,7 +585,7 @@ textarea {
 }
 
 // ============================================
-// Google-style Surface (keeping only used)
+// Google-style Surface
 // ============================================
 
 .surface {
